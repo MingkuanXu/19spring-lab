@@ -28,46 +28,70 @@ def extract_barcode_from_line(line):
 def filter_barcodes(barcode_list,fragmentsfilename):
 
     d_info = {} # A dict to record number of fragments in different mismatch levels.
-    for i in range(MISMATCH_LIMIT+1):
-        d_info[i] = 0
+    d_barcodes = {} # A dict to record all barcodes of a mismatch level.
+    previous_barcode = '' # Record the previous barcode scanned
+    previous_result = '' # Record the previous mismatch results
 
-    # Number of perfect matched barcodes
-    perfect_matched = 0
-    others = 0
-    mismatched_barcodes = []
+    # Declare two dicts to record barcode info
+    for i in range(MISMATCH_LIMIT+2):
+        d_info[i] = 0
+        d_barcodes[i] = []
+
 
     f = open(fragmentsfilename,"r")
     print('Catagorizing barcodes...')
+
+    number_of_fragements = 0
+
     while(True):
         line = f.readline().rstrip('\n')
         if not line:
             break
-        barcode = extract_barcode_from_line(line)
+        number_of_fragements+=1
 
+        barcode = extract_barcode_from_line(line)
         '''
         The following code is used to handle each barcode in the file.
         '''
-        if barcode in barcode_list:
-            d_info[0] +=1
+        # Firstly, we compare if the new barcode is the same as the previous barcode.
+        if barcode == previous_barcode:
+            d_info[previous_result]+=1
+            continue
+
+        # Secondly, we check if the  barcode is in the barcode list i.e. a perfect match.
+        elif barcode in barcode_list:
+            # A perfect match
+            mismatch = 0
+            d_info[0]+=1
+
+            previous_result = 0
+            previous_barcode = barcode
+            continue
+
+        # Thirdly, we check if we have seen this barcode before
         else:
-            '''
-            Handle fragments with mismatched barcodes
-            '''
-            others+=1
-            mismatch_level = find_most_similar_barcode(barcode,barcode_list)
-            if mismatch_level in d_info:
-                d_info[mismatch_level]+=1
-            else:
-                print("Error: key not in dict!")
-                d_info[mismatch_level]=1
+            for key in d_barcodes:
+                if barcode in d_barcodes[key]:
+                    # If we have dealt with this barcode before.
+                    mismatch = int(key)
+                    d_info[mismatch] +=1
+
+                    previous_result = mismatch
+                    previous_barcode = barcode
+                    continue
+
+            # Finally, since this is a new barcode, we start finding its smallest mismatch value.
+            mismatch = find_most_similar_barcode(barcode,barcode_list)
+            d_barcodes[mismatch].append(barcode) # Store this barcode into dict
+            d_info[mismatch]+=1
+
+            previous_result = mismatch
+            previous_barcode = barcode
+
     f.close()
     # Display results
     print()
-    print('Number of Fragments in Total: %d' % (d_info[0]+others))
-    print('Fragments in Whitelist: %d' % d_info[0])
-    print('Mismatched Barcodes: %d' % others)
-    print()
-
+    print('Number of Fragments in Total: %d' % (number_of_fragements))
     for i in range(MISMATCH_LIMIT+1):
         print("%d  mismatch: %d" % (i, d_info[i]))
     print("%d+ mismatch: %d" % (MISMATCH_LIMIT, d_info[MISMATCH_LIMIT+1]))
@@ -134,6 +158,11 @@ except getopt.error as err:
     sys.exit(2)
 
 MISMATCH_LIMIT = 1 # Number of mismatch tolerated. Default 1.
+
+if(len(arguments)==0):
+    barcode_list = from_file_to_barcode_list('given-barcodes-test.txt')
+    fragement_filename = 'all-barcodes-test.txt'
+
 for currentArgument, currentValue in arguments:
     if currentArgument in ("-b", "--barcodes"):
         print(currentValue)
