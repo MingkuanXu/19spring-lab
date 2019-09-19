@@ -11,37 +11,51 @@ def from_file_to_barcode_list(filename):
     f.close()
     return barcodes
 
-def filter_barcodes(barcode_list,all_barcodes):
+def extract_barcode_from_line(line):
+    '''
+    This function is used to extract barcode info from a line.
+    '''
+    return line
+
+def filter_barcodes(barcode_list,fragmentsfilename):
 
     d_info = {} # A dict to record number of fragments in different mismatch levels.
+    d_info[0] = 0
 
     # Number of perfect matched barcodes
     perfect_matched = 0
+    others = 0
     mismatched_barcodes = []
 
-    for each in all_barcodes:
-        if each in barcode_list:
-            perfect_matched+=1
+    f = open(fragmentsfilename,"r")
+    while(True):
+        line = f.readline().rstrip('\n')
+        if not line:
+            break
+        barcode = extract_barcode_from_line(line)
+
+        '''
+        The following code is used to handle each barcode in the file.
+        '''
+        print('Catagorizing barcodes...')
+        if barcode in barcode_list:
+            d_info[0] +=1
         else:
-            mismatched_barcodes.append(each)
-    print(len(all_barcodes))
-    print('Number of Fragments in Total: %d' % len(all_barcodes))
-    print('Fragments in Whitelist: %d' % perfect_matched)
-    print('Mismatched Barcodes: %d' % len(mismatched_barcodes))
-
-    d_info[0] = perfect_matched
-    print()
-
-    # Handle fragments with mismatched barcodes
-    print('Catagorizing barcodes...')
-    for each in mismatched_barcodes:
-        mismatch_level = find_most_similar_barcode(each,barcode_list)
-        if mismatch_level in d_info:
-            d_info[mismatch_level]+=1
-        else:
-            d_info[mismatch_level]=1
-
+            '''
+            Handle fragments with mismatched barcodes
+            '''
+            others+=1
+            mismatch_level = find_most_similar_barcode(barcode,barcode_list)
+            if mismatch_level in d_info:
+                d_info[mismatch_level]+=1
+            else:
+                d_info[mismatch_level]=1
+    f.close()
     # Display results
+
+    print('Number of Fragments in Total: %d' % (d_info[0]+others))
+    print('Fragments in Whitelist: %d' % d_info[0])
+    print('Mismatched Barcodes: %d' % others)
     print()
     for key in d_info:
         if key == MISMATCH_LIMIT+1:
@@ -52,7 +66,9 @@ def filter_barcodes(barcode_list,all_barcodes):
 
 
 def find_most_similar_barcode(barcode,barcode_list):
-    # Find the most similar barcode from the barcode list and return its number of mismatch.
+    '''
+    Find the most similar barcode from the barcode list and return its number of mismatch.
+    '''
     smallest_mismatch = MISMATCH_LIMIT+1
     for each in barcode_list:
         current_mismatch = compare_barcodes(barcode,each)
@@ -63,7 +79,9 @@ def find_most_similar_barcode(barcode,barcode_list):
     return smallest_mismatch
 
 def compare_barcodes(barcode1, barcode2):
-    # Compare two barcodes one by one and return their number of mismatched nucleotides.
+    '''
+    Compare two barcodes one by one and return their number of mismatched nucleotides.
+    '''
     if not(len(barcode1)==len(barcode2)):
         print("Error: two barcodes differ in length!")
         exit()
@@ -86,5 +104,4 @@ def compare_barcodes(barcode1, barcode2):
 
 if __name__ == "__main__":
     barcode_list = from_file_to_barcode_list("given-barcodes-test.txt")
-    all_barcodes = from_file_to_barcode_list("all-barcodes-test.txt")
-    filter_barcodes(barcode_list,all_barcodes)
+    filter_barcodes(barcode_list,"all-barcodes-test.txt")
