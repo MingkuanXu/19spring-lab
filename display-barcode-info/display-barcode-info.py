@@ -1,3 +1,7 @@
+#!/Users/xumingkuan/anaconda3/bin/python
+
+import sys
+
 MISMATCH_LIMIT = 2 # Number of mismatch tolerated
 
 def from_file_to_barcode_list(filename):
@@ -28,6 +32,7 @@ def filter_barcodes(barcode_list,fragmentsfilename):
     mismatched_barcodes = []
 
     f = open(fragmentsfilename,"r")
+    print('Catagorizing barcodes...')
     while(True):
         line = f.readline().rstrip('\n')
         if not line:
@@ -37,7 +42,6 @@ def filter_barcodes(barcode_list,fragmentsfilename):
         '''
         The following code is used to handle each barcode in the file.
         '''
-        print('Catagorizing barcodes...')
         if barcode in barcode_list:
             d_info[0] +=1
         else:
@@ -52,7 +56,7 @@ def filter_barcodes(barcode_list,fragmentsfilename):
                 d_info[mismatch_level]=1
     f.close()
     # Display results
-
+    print()
     print('Number of Fragments in Total: %d' % (d_info[0]+others))
     print('Fragments in Whitelist: %d' % d_info[0])
     print('Mismatched Barcodes: %d' % others)
@@ -84,6 +88,8 @@ def compare_barcodes(barcode1, barcode2):
     '''
     if not(len(barcode1)==len(barcode2)):
         print("Error: two barcodes differ in length!")
+        print(barcode1)
+        print(barcode2)
         exit()
     mismatch = 0
     for i in range(len(barcode1)):
@@ -103,5 +109,7 @@ def compare_barcodes(barcode1, barcode2):
     return mismatch
 
 if __name__ == "__main__":
-    barcode_list = from_file_to_barcode_list("given-barcodes-test.txt")
-    filter_barcodes(barcode_list,"all-barcodes-test.txt")
+    # barcode_list = from_file_to_barcode_list("given-barcodes-test.txt")
+    barcode_list = from_file_to_barcode_list(sys.argv[2])
+    # filter_barcodes(barcode_list,"all-barcodes-test.txt")
+    filter_barcodes(barcode_list,sys.argv[1])
