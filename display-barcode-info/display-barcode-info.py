@@ -23,12 +23,13 @@ def extract_barcode_from_line(line):
     '''
     This function is used to extract barcode info from a line.
     '''
-    return line
+    return line[-32:]
 
 def filter_barcodes(barcode_list,fragmentsfilename):
 
     d_info = {} # A dict to record number of fragments in different mismatch levels.
-    d_info[0] = 0
+    for i in range(MISMATCH_LIMIT+1):
+        d_info[i] = 0
 
     # Number of perfect matched barcodes
     perfect_matched = 0
@@ -57,6 +58,7 @@ def filter_barcodes(barcode_list,fragmentsfilename):
             if mismatch_level in d_info:
                 d_info[mismatch_level]+=1
             else:
+                print("Error: key not in dict!")
                 d_info[mismatch_level]=1
     f.close()
     # Display results
