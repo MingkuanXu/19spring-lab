@@ -1,7 +1,7 @@
 import sys
 
 
-f1 = open("sample-barcode.txt","r")
+f1 = open("scatac_white_list.txt","r")
 f2 = open("barcode-output.txt","w+")
 
 line = f1.readline()
