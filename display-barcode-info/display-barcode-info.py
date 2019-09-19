@@ -1,10 +1,13 @@
 #!/Users/xumingkuan/anaconda3/bin/python
 
-import sys
+import getopt,sys
 
-MISMATCH_LIMIT = 2 # Number of mismatch tolerated
 
 def from_file_to_barcode_list(filename):
+    '''
+    Load the barcode file into the memory
+    '''
+    print("Loading barcode.txt ...")
     f = open(filename,"r")
     barcodes = []
     while(True):
@@ -13,6 +16,7 @@ def from_file_to_barcode_list(filename):
             break
         barcodes.append(line)
     f.close()
+    print()
     return barcodes
 
 def extract_barcode_from_line(line):
@@ -61,11 +65,10 @@ def filter_barcodes(barcode_list,fragmentsfilename):
     print('Fragments in Whitelist: %d' % d_info[0])
     print('Mismatched Barcodes: %d' % others)
     print()
-    for key in d_info:
-        if key == MISMATCH_LIMIT+1:
-            print("%d+ mismatch: %d" % (key-1, d_info[key]))
-        else:
-            print("%d  mismatch: %d" % (key, d_info[key]))
+
+    for i in range(MISMATCH_LIMIT+1):
+        print("%d  mismatch: %d" % (i, d_info[i]))
+    print("%d+ mismatch: %d" % (MISMATCH_LIMIT, d_info[MISMATCH_LIMIT+1]))
     return
 
 
@@ -76,6 +79,8 @@ def find_most_similar_barcode(barcode,barcode_list):
     smallest_mismatch = MISMATCH_LIMIT+1
     for each in barcode_list:
         current_mismatch = compare_barcodes(barcode,each)
+        if current_mismatch ==1:
+            return 1 # Already the smallest mismatch
         if current_mismatch<smallest_mismatch:
             smallest_mismatch =  current_mismatch
     if smallest_mismatch == MISMATCH_LIMIT+1:
@@ -108,8 +113,41 @@ def compare_barcodes(barcode1, barcode2):
         exit()
     return mismatch
 
-if __name__ == "__main__":
-    # barcode_list = from_file_to_barcode_list("given-barcodes-test.txt")
-    barcode_list = from_file_to_barcode_list(sys.argv[2])
-    # filter_barcodes(barcode_list,"all-barcodes-test.txt")
-    filter_barcodes(barcode_list,sys.argv[1])
+
+# read commandline arguments, first
+fullCmdArguments = sys.argv
+
+# - further arguments
+argumentList = fullCmdArguments[1:]
+
+unixOptions = "b:f:m:h"
+gnuOptions = ["barcodes=", "fragments=", "max=","help"]
+
+
+try:
+    arguments, values = getopt.getopt(argumentList, unixOptions, gnuOptions)
+except getopt.error as err:
+    # output error, and return with an error code
+    print (str(err))
+    sys.exit(2)
+
+MISMATCH_LIMIT = 1 # Number of mismatch tolerated. Default 1.
+for currentArgument, currentValue in arguments:
+    if currentArgument in ("-b", "--barcodes"):
+        print(currentValue)
+        barcode_list = from_file_to_barcode_list(currentValue)
+    elif currentArgument in ("-f", "--fragments"):
+        print(currentValue)
+        fragement_filename = currentValue
+    elif currentArgument in ("-m", "--max"):
+        print(currentValue)
+        MISMATCH_LIMIT = int(currentValue)
+    elif currentArgument in ("-h", "--help"):
+        print("-b --barcodes  : barcodes.txt")
+        print("-f --fragments : fragments.txt")
+        print("-m --max       : max-mismatch-tolerated (default 1)")
+        exit()
+
+
+
+filter_barcodes(barcode_list,fragement_filename)
