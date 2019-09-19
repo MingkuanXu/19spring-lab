@@ -31,6 +31,7 @@ def filter_barcodes(barcode_list,fragmentsfilename):
     d_barcodes = {} # A dict to record all barcodes of a mismatch level.
     previous_barcode = '' # Record the previous barcode scanned
     previous_result = '' # Record the previous mismatch results
+    perfect_matched = []
 
     # Declare two dicts to record barcode info
     for i in range(MISMATCH_LIMIT+2):
@@ -64,6 +65,9 @@ def filter_barcodes(barcode_list,fragmentsfilename):
             mismatch = 0
             d_info[0]+=1
 
+            if barcode not in perfect_matched:
+                perfect_matched.append(barcode)
+
             previous_result = 0
             previous_barcode = barcode
             continue
@@ -89,12 +93,16 @@ def filter_barcodes(barcode_list,fragmentsfilename):
             previous_barcode = barcode
 
     f.close()
+
+
     # Display results
     print()
     print('Number of Fragments in Total: %d' % (number_of_fragements))
-    for i in range(MISMATCH_LIMIT+1):
-        print("%d  mismatch: %d" % (i, d_info[i]))
-    print("%d+ mismatch: %d" % (MISMATCH_LIMIT, d_info[MISMATCH_LIMIT+1]))
+    print('Number of Barcodes Provided: %d' % len(barcode_list))
+    print("0  mismatch: %d fragments from %d barcodes" %(d_info[0],len(perfect_matched)))
+    for i in range(1, MISMATCH_LIMIT+1):
+        print("%d  mismatch: %d fragments from %d barcodes" % (i, d_info[i],len(d_barcodes[i])))
+    print("%d+ mismatch: %d fragments from %d barcodes" % (MISMATCH_LIMIT, d_info[MISMATCH_LIMIT+1],len(d_barcodes[MISMATCH_LIMIT+1])))
     return
 
 
