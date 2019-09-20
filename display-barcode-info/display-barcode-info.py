@@ -19,11 +19,12 @@ def from_file_to_barcode_list(filename):
     print()
     return barcodes
 
-def extract_barcode_from_line(line):
+def extract_from_line(line):
     '''
     This function is used to extract barcode info from a line.
     '''
-    return line[-32:]
+    (fragments,barcode) = line.strip().split(" ")
+    return (fragments,barcode)
 
 def filter_barcodes(barcode_list,fragmentsfilename):
 
@@ -36,73 +37,44 @@ def filter_barcodes(barcode_list,fragmentsfilename):
     # Declare two dicts to record barcode info
     for i in range(MISMATCH_LIMIT+2):
         d_info[i] = 0
-        d_barcodes[i] = []
+        d_barcodes[i] = 0
 
 
     f = open(fragmentsfilename,"r")
     print('Catagorizing barcodes...')
 
-    number_of_fragements = 0
+    total_fragements = 0
 
     while(True):
         line = f.readline().rstrip('\n')
         if not line:
             break
-        number_of_fragements+=1
+        total_fragements+=1
 
-        barcode = extract_barcode_from_line(line)
+        (fragments, barcode) = extract_from_line(line)
         '''
         The following code is used to handle each barcode in the file.
         '''
-        # Firstly, we compare if the new barcode is the same as the previous barcode.
-        if barcode == previous_barcode:
-            d_info[previous_result]+=1
-            continue
 
-        # Secondly, we check if the  barcode is in the barcode list i.e. a perfect match.
-        elif barcode in barcode_list:
+        if barcode in barcode_list:
             # A perfect match
             mismatch = 0
-            d_info[0]+=1
-
-            if barcode not in perfect_matched:
-                perfect_matched.append(barcode)
-
-            previous_result = 0
-            previous_barcode = barcode
-            continue
-
-        # Thirdly, we check if we have seen this barcode before
         else:
-            for key in d_barcodes:
-                if barcode in d_barcodes[key]:
-                    # If we have dealt with this barcode before.
-                    mismatch = int(key)
-                    d_info[mismatch] +=1
-
-                    previous_result = mismatch
-                    previous_barcode = barcode
-                    continue
-
-            # Finally, since this is a new barcode, we start finding its smallest mismatch value.
             mismatch = find_most_similar_barcode(barcode,barcode_list)
-            d_barcodes[mismatch].append(barcode) # Store this barcode into dict
-            d_info[mismatch]+=1
 
-            previous_result = mismatch
-            previous_barcode = barcode
+        d_barcodes[mismatch]+=1
+        d_info[mismatch]+=int(fragments)
 
     f.close()
 
 
     # Display results
     print()
-    print('Number of Fragments in Total: %d' % (number_of_fragements))
+    print('Number of Fragments in Total: %d' % (total_fragements))
     print('Number of Barcodes Provided: %d' % len(barcode_list))
-    print("0  mismatch: %d fragments from %d barcodes" %(d_info[0],len(perfect_matched)))
-    for i in range(1, MISMATCH_LIMIT+1):
-        print("%d  mismatch: %d fragments from %d barcodes" % (i, d_info[i],len(d_barcodes[i])))
-    print("%d+ mismatch: %d fragments from %d barcodes" % (MISMATCH_LIMIT, d_info[MISMATCH_LIMIT+1],len(d_barcodes[MISMATCH_LIMIT+1])))
+    for i in range(0, MISMATCH_LIMIT+1):
+        print("%d  mismatch: %d fragments from %d barcodes" % (i, d_info[i],d_barcodes[i]))
+    print("%d+ mismatch: %d fragments from %d barcodes" % (MISMATCH_LIMIT, d_info[MISMATCH_LIMIT+1],d_barcodes[MISMATCH_LIMIT+1]))
     return
 
 
@@ -118,7 +90,7 @@ def find_most_similar_barcode(barcode,barcode_list):
         if current_mismatch<smallest_mismatch:
             smallest_mismatch =  current_mismatch
     if smallest_mismatch == MISMATCH_LIMIT+1:
-        print("Found Mismatch Barcode: %s" % barcode)
+        print("Mismatch Found: %s" % barcode)
     return smallest_mismatch
 
 def compare_barcodes(barcode1, barcode2):
@@ -169,7 +141,7 @@ MISMATCH_LIMIT = 1 # Number of mismatch tolerated. Default 1.
 
 if(len(arguments)==0):
     barcode_list = from_file_to_barcode_list('given-barcodes-test.txt')
-    fragement_filename = 'all-barcodes-test.txt'
+    fragement_filename = 'sorted-fragments-test.txt'
 
 for currentArgument, currentValue in arguments:
     if currentArgument in ("-b", "--barcodes"):
