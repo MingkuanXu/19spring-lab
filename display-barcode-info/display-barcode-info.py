@@ -52,7 +52,6 @@ def catagorize_barcode(line):
 
     (fragments, barcode) = extract_from_line(line.rstrip('\n'))
 
-    print("Here!")
     if barcode in barcode_list:
         # A perfect match
         frag_0_mismatch.add_k(fragments)
@@ -172,7 +171,7 @@ except getopt.error as err:
     sys.exit(2)
 
 MISMATCH_LIMIT = 1 # Number of mismatch tolerated. Default 1.
-MAX_CORE = 10
+MAX_CORE = 1
 
 barcode_list = []
 
@@ -190,7 +189,7 @@ for currentArgument, currentValue in arguments:
     elif currentArgument in ("-m", "--max"):
         print(currentValue)
         MISMATCH_LIMIT = int(currentValue)
-    elif currentArgument in ("-m", "--max"):
+    elif currentArgument in ("-c", "--core"):
         print(currentValue)
         MAX_CORE = int(currentValue)
     elif currentArgument in ("-h", "--help"):
