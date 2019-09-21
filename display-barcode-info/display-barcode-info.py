@@ -61,6 +61,9 @@ def catagorize_barcode(line):
         if mismatch == 1:
             frag_1_mismatch.add_k(fragments)
             bar_1_mismatch.increment()
+        elif mismatch ==0:
+            frag_match_2.add_k(fragments)
+            bar_match_2.increment()
         else:
             frag_2_mismatch.add_k(fragments)
             bar_2_mismatch.increment()
@@ -99,9 +102,11 @@ def find_barcode_info(barcode_list,fragmentsfilename):
     print('Number of Fragments in Total: %d' % (total_fragements))
     print('Number of Barcodes Provided: %d' % len(barcode_list))
 
-    print("0  mismatch: %d fragments from %d barcodes" % (frag_0_mismatch.value(),bar_0_mismatch.value()))
-    print("1  mismatch: %d fragments from %d barcodes" % (frag_1_mismatch.value(),bar_1_mismatch.value()))
-    print("2+ mismatch: %d fragments from %d barcodes" % (frag_2_mismatch.value(),bar_2_mismatch.value()))
+    print("0   mismatch: %d fragments from %d barcodes" % (frag_0_mismatch.value(),bar_0_mismatch.value()))
+    print("1   mismatch: %d fragments from %d barcodes" % (frag_1_mismatch.value(),bar_1_mismatch.value()))
+    print("2+  mismatch: %d fragments from %d barcodes" % (frag_2_mismatch.value(),bar_2_mismatch.value()))
+
+    print("Match with 2: %d fragments from %d barcodes" % (frag_match_2.value(),bar_match_2.value()))
 
     return
 
@@ -116,10 +121,15 @@ def find_most_similar_barcode(barcode,barcode_list):
     Find the most similar barcode from the barcode list and return its number of mismatch.
     '''
     smallest_mismatch = MISMATCH_LIMIT+1
+    number_of_1_mismatch = 0
     for each in barcode_list:
         current_mismatch = compare_barcodes(barcode,each)
         if current_mismatch ==1:
-            return 1 # Already the smallest mismatch
+            number_of_1_mismatch +=1
+            if number_of_1_mismatch ==2:
+                print("Identify barcode w/ two 1-mismatch candidates!")
+                return 0
+            # return 1 # Already the smallest mismatch
         if current_mismatch<smallest_mismatch:
             smallest_mismatch =  current_mismatch
     if smallest_mismatch == MISMATCH_LIMIT+1:
@@ -203,9 +213,12 @@ for currentArgument, currentValue in arguments:
 frag_0_mismatch = Counter(0)
 frag_1_mismatch = Counter(0)
 frag_2_mismatch = Counter(0)
+frag_match_2 = Counter(0)
 
 bar_0_mismatch = Counter(0)
 bar_1_mismatch = Counter(0)
 bar_2_mismatch = Counter(0)
+bar_match_2 = Counter(0)
+
 
 find_barcode_info(barcode_list,fragement_filename)
