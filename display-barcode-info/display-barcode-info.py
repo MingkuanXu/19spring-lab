@@ -45,23 +45,27 @@ def extract_from_line(line):
     return (int(fragments),barcode)
 
 
-def catagorize_barcode(line):
+def catagorize_barcode(barcode_info,line):
     '''
     The following code is used to handle each barcode in the fragment file.
+    It will insert an info entry into the barcode_info list.
+    An info entry has a form of (barcode, # of fragments, 0/1 mismatch).
     '''
+
 
     (fragments, barcode) = extract_from_line(line.rstrip('\n'))
 
     if barcode in barcode_list:
         # A perfect match
+        mismatch = 0
         frag_0_mismatch.add_k(fragments)
         bar_0_mismatch.increment()
     else:
-        mismatch = find_most_similar_barcode(barcode,barcode_list)
+        (mismatch,matched_barcode) = find_most_similar_barcode(barcode,barcode_list)
         if mismatch == 1:
             frag_1_mismatch.add_k(fragments)
             bar_1_mismatch.increment()
-        elif mismatch ==0:
+        elif mismatch == 0: # This means it has two 1-mismatched barcodes in the whitelist. Does not mean perfect match.
             frag_match_2.add_k(fragments)
             bar_match_2.increment()
         else:
@@ -74,8 +78,13 @@ def find_barcode_info(barcode_list,fragmentsfilename):
 
     pool = multiprocessing.Pool(MAX_CORE)
 
+    m = multiprocessing.Manager()
+    barcode_info = m.list()
+
     f = open(fragmentsfilename,"r")
     print('Catagorizing barcodes...')
+
+    # f_out = open(OUTPUT_FILENAME,"w")
 
     total_fragements = 0
 
@@ -85,7 +94,7 @@ def find_barcode_info(barcode_list,fragmentsfilename):
         if not line:
             break
         total_fragements+=1
-        pool.apply_async(catagorize_barcode, (line,))
+        pool.apply_async(catagorize_barcode, (barcode_info,line,))
         # pool.apply_async(print_line,(line,))
 
     # time.sleep(3)
@@ -94,6 +103,7 @@ def find_barcode_info(barcode_list,fragmentsfilename):
     pool.join()
 
     f.close()
+    # f_out.close()
 
 
     # Display results
@@ -110,31 +120,30 @@ def find_barcode_info(barcode_list,fragmentsfilename):
 
     return
 
-# def print_line(line):
-#     print("Here")
-#     counter.increment()
-#     print("Here")
-#     return
+
 
 def find_most_similar_barcode(barcode,barcode_list):
     '''
     Find the most similar barcode from the barcode list and return its number of mismatch.
     '''
     smallest_mismatch = MISMATCH_LIMIT+1
+    smallest_mismatch_barcode = ''
+
     number_of_1_mismatch = 0
     for each in barcode_list:
         current_mismatch = compare_barcodes(barcode,each)
         if current_mismatch ==1:
             number_of_1_mismatch +=1
+            smallest_mismatch_barcode = each
             if number_of_1_mismatch ==2:
                 print("Identify barcode w/ two 1-mismatch candidates!")
-                return 0
+                return (0,smallest_mismatch_barcode)
             # return 1 # Already the smallest mismatch
         if current_mismatch<smallest_mismatch:
             smallest_mismatch =  current_mismatch
     if smallest_mismatch == MISMATCH_LIMIT+1:
         print("Mismatch Found: %s" % barcode)
-    return smallest_mismatch
+    return (smallest_mismatch, smallest_mismatch_barcode)
 
 def compare_barcodes(barcode1, barcode2):
     '''
@@ -162,6 +171,12 @@ def compare_barcodes(barcode1, barcode2):
         exit()
     return mismatch
 
+def write_barcode_info(f, barcode,fragments,type):
+    '''
+    This function writes barcode info into a file.
+    Var fragments refers to the number of fragments matched with the given barcode.
+    Var type: 0 refers to perfect match & 1 refers to 1 mismatch.
+    '''
 
 # read commandline arguments, first
 fullCmdArguments = sys.argv
@@ -169,8 +184,8 @@ fullCmdArguments = sys.argv
 # - further arguments
 argumentList = fullCmdArguments[1:]
 
-unixOptions = "b:f:m:hc:"
-gnuOptions = ["barcodes=", "fragments=", "max=","help","core="]
+unixOptions = "b:f:m:hc:0:"
+gnuOptions = ["barcodes=", "fragments=", "max=","help","core=","output="]
 
 
 try:
@@ -182,17 +197,23 @@ except getopt.error as err:
 
 MISMATCH_LIMIT = 1 # Number of mismatch tolerated. Default 1.
 MAX_CORE = 1
+OUTPUT_FILENAME = "output.txt"
 
 barcode_list = []
 
 if(len(arguments)==0):
-    barcode_list = from_file_to_barcode_list('given-barcodes-test.txt')
+    barcode_list = set(from_file_to_barcode_list('given-barcodes-test.txt'))
     fragement_filename = 'sorted-fragments-test.txt'
 
 for currentArgument, currentValue in arguments:
     if currentArgument in ("-b", "--barcodes"):
         print(currentValue)
         barcode_list = from_file_to_barcode_list(currentValue)
+        if len(barcode_list) == len(set(barcode_list)):
+            print("%d barcodes are provided. All of them are unique." % len(barcode_list))
+        else:
+            print("%d barcodes are provided. %d of them are unique." % (len(barcode_list),len(set(barcode_list))))
+            barcode_list = set(barcode_list)
     elif currentArgument in ("-f", "--fragments"):
         print(currentValue)
         fragement_filename = currentValue
@@ -202,11 +223,14 @@ for currentArgument, currentValue in arguments:
     elif currentArgument in ("-c", "--core"):
         print(currentValue)
         MAX_CORE = int(currentValue)
+    elif currentArgument in ("-o", "--output"):
+        OUTPUT_FILENAME = currentValue
     elif currentArgument in ("-h", "--help"):
         print("-b --barcodes  : barcodes.txt")
         print("-f --fragments : fragments.txt")
         print("-m --max       : max-mismatch-tolerated (default 1)")
         print("-c --core      : max-core-usage (default 1)")
+        print("-o --output    : output-filename (default output.txt)")
         exit()
 
 
