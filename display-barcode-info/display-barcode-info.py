@@ -99,7 +99,6 @@ def find_barcode_info(fragmentsfilename):
 
     # time.sleep(3)
     # pool.wait()
-    print('Here!')
     pool.close()
     pool.join()
 
@@ -109,7 +108,7 @@ def find_barcode_info(fragmentsfilename):
 
     # Display results
 
-    print()
+    print('\n')
     print('Number of Fragments in Total: %d' % (total_fragements))
     print('Number of Barcodes Provided: %d' % len(barcode_list))
 
@@ -156,8 +155,6 @@ def find_most_similar_barcode(barcode):
     smallest_mismatch_barcode = ''
 
     compare_list = load_potential_barcodes_from_index(barcode)
-    print(len(compare_list),len(barcode_list))
-
     number_of_1_mismatch = 0
     for each in compare_list:
         current_mismatch = compare_barcodes(barcode,each)
@@ -227,10 +224,6 @@ def build_barcode_index():
             d_barcode_index[number_of_A][number_of_G] = []
         d_barcode_index[number_of_A][number_of_G].append(each)
 
-    for a in d_barcode_index:
-        for g in d_barcode_index[a]:
-            print(a,g,len(d_barcode_index[a][g]))
-    print('Barcode index finished.')
 
 # read commandline arguments, first
 fullCmdArguments = sys.argv
