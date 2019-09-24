@@ -55,7 +55,7 @@ def catagorize_barcode(barcode_info,line):
 
     (fragments, barcode) = extract_from_line(line.rstrip('\n'))
 
-    if barcode in barcode_list:
+    if barcode in barcode_set:
         # A perfect match
         mismatch = 0
         frag_0_mismatch.add_k(fragments)
@@ -74,7 +74,7 @@ def catagorize_barcode(barcode_info,line):
     return
 
 
-def find_barcode_info(barcode_list,fragmentsfilename):
+def find_barcode_info(fragmentsfilename):
 
     pool = multiprocessing.Pool(MAX_CORE)
 
@@ -99,6 +99,7 @@ def find_barcode_info(barcode_list,fragmentsfilename):
 
     # time.sleep(3)
     # pool.wait()
+    print('Here!')
     pool.close()
     pool.join()
 
@@ -200,11 +201,12 @@ MAX_CORE = 1
 OUTPUT_FILENAME = "output.txt"
 
 barcode_list = []
+barcode_set = set([])
 
 if(len(arguments)==0):
-    barcode_list = set(from_file_to_barcode_list('given-barcodes-test.txt'))
+    barcode_list = from_file_to_barcode_list('given-barcodes-test.txt')
+    barcode_set = set(barcode_list)
     fragement_filename = 'sorted-fragments-test.txt'
-
 for currentArgument, currentValue in arguments:
     if currentArgument in ("-b", "--barcodes"):
         print(currentValue)
@@ -213,7 +215,7 @@ for currentArgument, currentValue in arguments:
             print("%d barcodes are provided. All of them are unique." % len(barcode_list))
         else:
             print("%d barcodes are provided. %d of them are unique." % (len(barcode_list),len(set(barcode_list))))
-            barcode_list = set(barcode_list)
+        barcode_set = set(barcode_list)
     elif currentArgument in ("-f", "--fragments"):
         print(currentValue)
         fragement_filename = currentValue
@@ -245,4 +247,4 @@ bar_2_mismatch = Counter(0)
 bar_match_2 = Counter(0)
 
 
-find_barcode_info(barcode_list,fragement_filename)
+find_barcode_info(fragement_filename)
