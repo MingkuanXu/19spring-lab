@@ -44,33 +44,35 @@ def extract_from_line(line):
     (fragments,barcode) = line.strip().split(" ")
     return (int(fragments),barcode)
 
-
-def catagorize_barcode(line):
+def catagorize_barcode(line, line_info, all_involved_barcode):
     '''
     The following code is used to handle each barcode in the fragment file.
     It will insert an info entry into the barcode_info list.
     An info entry has a form of (barcode, # of fragments, 0/1 mismatch).
     '''
 
-
     (fragments, barcode) = extract_from_line(line.rstrip('\n'))
 
     if barcode in barcode_set:
         # A perfect match
-        mismatch = 0
         frag_0_mismatch.add_k(fragments)
         bar_0_mismatch.increment()
+        line_info.append((barcode,fragments,0))
+        all_involved_barcode.append(barcode)
     else:
         (mismatch,matched_barcode) = find_most_similar_barcode(barcode)
         if mismatch == 1:
             frag_1_mismatch.add_k(fragments)
             bar_1_mismatch.increment()
+            line_info.append((matched_barcode,fragments,1))
+            all_involved_barcode.append(matched_barcode)
         elif mismatch == 0: # This means it has two 1-mismatched barcodes in the whitelist. Does not mean perfect match.
             frag_match_2.add_k(fragments)
             bar_match_2.increment()
         else:
             frag_2_mismatch.add_k(fragments)
             bar_2_mismatch.increment()
+
     return
 
 
@@ -78,8 +80,10 @@ def find_barcode_info(fragmentsfilename):
 
     pool = multiprocessing.Pool(MAX_CORE)
 
-    # m = multiprocessing.Manager()
-    # barcode_info = m.list()
+    m = multiprocessing.Manager()
+    line_info = m.list()
+    all_involved_barcode = m.list()
+
 
     f = open(fragmentsfilename,"r")
     print('Catagorizing barcodes...')
@@ -94,7 +98,7 @@ def find_barcode_info(fragmentsfilename):
         if not line:
             break
         total_fragements+=1
-        pool.apply_async(catagorize_barcode, (line,))
+        pool.apply_async(catagorize_barcode, (line,line_info,all_involved_barcode))
         # pool.apply_async(print_line,(line,))
 
     # time.sleep(3)
@@ -105,11 +109,12 @@ def find_barcode_info(fragmentsfilename):
     f.close()
     # f_out.close()
 
-
+    for each in line_info:
+        print(each)
     # Display results
 
     print('\n')
-    print('Number of Fragments in Total: %d' % (total_fragements))
+    print('Number of Lines in Total: %d' % (total_fragements))
     print('Number of Barcodes Provided: %d' % len(barcode_list))
 
     print("0   mismatch: %d fragments from %d barcodes" % (frag_0_mismatch.value(),bar_0_mismatch.value()))
@@ -117,6 +122,15 @@ def find_barcode_info(fragmentsfilename):
     print("2+  mismatch: %d fragments from %d barcodes" % (frag_2_mismatch.value(),bar_2_mismatch.value()))
 
     print("Match with 2: %d fragments from %d barcodes" % (frag_match_2.value(),bar_match_2.value()))
+
+    print('')
+    print('Number of Involved Barcodes: %d' % len(all_involved_barcode))
+
+    all_involved_barcode = set(all_involved_barcode)
+    print('Number of Unique Involved Barcodes: %d' % len(all_involved_barcode))
+
+    print('')
+
 
     return
 
@@ -256,7 +270,7 @@ if(len(arguments)==0):
     fragement_filename = 'sorted-fragments-test.txt'
 for currentArgument, currentValue in arguments:
     if currentArgument in ("-b", "--barcodes"):
-        print(currentValue)
+        # print(currentValue)
         barcode_list = from_file_to_barcode_list(currentValue)
         if len(barcode_list) == len(set(barcode_list)):
             print("%d barcodes are provided. All of them are unique." % len(barcode_list))
@@ -264,13 +278,13 @@ for currentArgument, currentValue in arguments:
             print("%d barcodes are provided. %d of them are unique." % (len(barcode_list),len(set(barcode_list))))
         barcode_set = set(barcode_list)
     elif currentArgument in ("-f", "--fragments"):
-        print(currentValue)
+        # print(currentValue)
         fragement_filename = currentValue
     elif currentArgument in ("-m", "--max"):
-        print(currentValue)
+        # print(currentValue)
         MISMATCH_LIMIT = int(currentValue)
     elif currentArgument in ("-c", "--core"):
-        print(currentValue)
+        # print(currentValue)
         MAX_CORE = int(currentValue)
     elif currentArgument in ("-o", "--output"):
         OUTPUT_FILENAME = currentValue
