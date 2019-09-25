@@ -182,7 +182,7 @@ def find_most_similar_barcode(barcode):
             number_of_1_mismatch +=1
             smallest_mismatch_barcode = each
             if number_of_1_mismatch ==2:
-                print("Identify barcode w/ two 1-mismatch candidates!")
+                # print("Identify barcode w/ two 1-mismatch candidates!")
                 return (0,smallest_mismatch_barcode)
             # return 1 # Already the smallest mismatch
         if current_mismatch<smallest_mismatch:
