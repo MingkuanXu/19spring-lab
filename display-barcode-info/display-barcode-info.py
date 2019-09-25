@@ -44,7 +44,9 @@ def extract_from_line(line):
     (fragments,barcode) = line.strip().split(" ")
     return (int(fragments),barcode)
 
-def catagorize_barcode(line, line_info, all_involved_barcode):
+def catagorize_barcode(line):
+# def catagorize_barcode(line):
+
     '''
     The following code is used to handle each barcode in the fragment file.
     It will insert an info entry into the barcode_info list.
@@ -57,15 +59,17 @@ def catagorize_barcode(line, line_info, all_involved_barcode):
         # A perfect match
         frag_0_mismatch.add_k(fragments)
         bar_0_mismatch.increment()
-        line_info.append((barcode,fragments,0))
-        all_involved_barcode.append(barcode)
+        # line_info.append((barcode,fragments,0))
+        print(barcode,fragments,0)
+        # all_involved_barcode.append(barcode)
     else:
         (mismatch,matched_barcode) = find_most_similar_barcode(barcode)
         if mismatch == 1:
             frag_1_mismatch.add_k(fragments)
             bar_1_mismatch.increment()
-            line_info.append((matched_barcode,fragments,1))
-            all_involved_barcode.append(matched_barcode)
+            # line_info.append((matched_barcode,fragments,1))
+            print(matched_barcode,fragments,1)
+            # all_involved_barcode.append(matched_barcode)
         elif mismatch == 0: # This means it has two 1-mismatched barcodes in the whitelist. Does not mean perfect match.
             frag_match_2.add_k(fragments)
             bar_match_2.increment()
@@ -75,20 +79,18 @@ def catagorize_barcode(line, line_info, all_involved_barcode):
 
     return
 
-
 def find_barcode_info(fragmentsfilename):
 
     pool = multiprocessing.Pool(MAX_CORE)
 
-    m = multiprocessing.Manager()
-    line_info = m.list()
-    all_involved_barcode = m.list()
 
+    # m = multiprocessing.Manager()
+    # line_info = m.list()
+    # all_involved_barcode = m.list()
 
     f = open(fragmentsfilename,"r")
     print('Catagorizing barcodes...')
 
-    # f_out = open(OUTPUT_FILENAME,"w")
 
     total_fragements = 0
 
@@ -98,7 +100,9 @@ def find_barcode_info(fragmentsfilename):
         if not line:
             break
         total_fragements+=1
-        pool.apply_async(catagorize_barcode, (line,line_info,all_involved_barcode))
+        pool.apply_async(catagorize_barcode, (line,))
+        # pool.apply_async(catagorize_barcode, (line,))
+
         # pool.apply_async(print_line,(line,))
 
     # time.sleep(3)
@@ -107,10 +111,7 @@ def find_barcode_info(fragmentsfilename):
     pool.join()
 
     f.close()
-    # f_out.close()
 
-    for each in line_info:
-        print(each)
     # Display results
 
     print('\n')
@@ -124,6 +125,8 @@ def find_barcode_info(fragmentsfilename):
     print("Match with 2: %d fragments from %d barcodes" % (frag_match_2.value(),bar_match_2.value()))
 
     print('')
+
+    '''
     print('Number of Involved Barcodes: %d' % len(all_involved_barcode))
 
     all_involved_barcode = set(all_involved_barcode)
@@ -131,10 +134,13 @@ def find_barcode_info(fragmentsfilename):
 
     print('')
 
+    for each in line_info:
+
+    print('Writing into the output file')
+    write_output(line_info)
+    '''
 
     return
-
-
 
 def load_potential_barcodes_from_index(barcode):
     '''
@@ -211,12 +217,15 @@ def compare_barcodes(barcode1, barcode2):
         exit()
     return mismatch
 
-def write_barcode_info(f, barcode,fragments,type):
+def write_output(line_info):
     '''
-    This function writes barcode info into a file.
+    This function writes line info into a file.
     Var fragments refers to the number of fragments matched with the given barcode.
     Var type: 0 refers to perfect match & 1 refers to 1 mismatch.
     '''
+    f_out = open(OUTPUT_FILENAME,"w")
+
+    f_out.close()
 
 
 def build_barcode_index():
