@@ -62,16 +62,20 @@ def catagorize_barcode(line):
         # line_info.append((barcode,fragments,0))
         print(barcode,fragments,0)
         # all_involved_barcode.append(barcode)
-    elif barcode in full_barcode_table:
-        # (mismatch,matched_barcode) = find_most_similar_barcode(barcode)
-        frag_1_mismatch.add_k(fragments)
-        bar_1_mismatch.increment()
-            # line_info.append((matched_barcode,fragments,1))
-        print(barcode,fragments,1)
-            # all_involved_barcode.append(matched_barcode)
     else:
-        frag_2_mismatch.add_k(fragments)
-        bar_2_mismatch.increment()
+        (mismatch,matched_barcode) = find_most_similar_barcode(barcode)
+        if mismatch == 1:
+            frag_1_mismatch.add_k(fragments)
+            bar_1_mismatch.increment()
+            # line_info.append((matched_barcode,fragments,1))
+            print(matched_barcode,fragments,1)
+            # all_involved_barcode.append(matched_barcode)
+        elif mismatch == 0: # This means it has two 1-mismatched barcodes in the whitelist. Does not mean perfect match.
+            frag_match_2.add_k(fragments)
+            bar_match_2.increment()
+        else:
+            frag_2_mismatch.add_k(fragments)
+            bar_2_mismatch.increment()
 
     return
 
@@ -328,4 +332,4 @@ bar_match_2 = Counter(0)
 full_barcode_table = []
 build_full_barcode_table()
 
-find_barcode_info(fragement_filename)
+# find_barcode_info(fragement_filename)
