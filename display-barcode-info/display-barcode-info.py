@@ -217,6 +217,19 @@ def compare_barcodes(barcode1, barcode2):
         exit()
     return mismatch
 
+
+def build_full_barcode_table():
+    full_barcode_table = []
+    print("Hi")
+    bp = ['A','G','T','C']
+    for barcode in barcode_list:
+        for i in range(len(barcode)):
+            for each in bp:
+                full_barcode_table.append(barcode[:i]+each+barcode[i+1:])
+    for each in full_barcode_table:
+        print(each)
+
+
 def write_output(line_info):
     '''
     This function writes line info into a file.
@@ -317,7 +330,8 @@ bar_2_mismatch = Counter(0)
 bar_match_2 = Counter(0)
 
 
-d_barcode_index = {}
-build_barcode_index()
+# d_barcode_index = {}
+# build_barcode_index()
+build_full_barcode_table()
 
-find_barcode_info(fragement_filename)
+# find_barcode_info(fragement_filename)
