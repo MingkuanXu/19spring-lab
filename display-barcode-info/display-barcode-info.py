@@ -27,7 +27,7 @@ def extract_from_line(line):
     (fragments,barcode) = line.strip().split(" ")
     return (int(fragments),barcode)
 
-def catagorize_barcode(line,barcode_set,unique_one_mismatch_barcodes,one_mismatch_to_two_barcodes):
+def catagorize_barcode(line,barcode_set,full_barcode_table,one_mismatch_to_two_barcodes):
     '''
     The following code is used to handle each barcode in the fragment file.
     It will insert an info entry into the barcode_info list.
@@ -38,11 +38,11 @@ def catagorize_barcode(line,barcode_set,unique_one_mismatch_barcodes,one_mismatc
     if barcode in barcode_set:
         match_type = 0
         print(barcode,fragments,0)
-    elif barcode in unique_one_mismatch_barcodes:
-        match_type = 1
-        print(barcode,fragments,1)
     elif barcode in one_mismatch_to_two_barcodes:
         match_type = 3
+    elif barcode in full_barcode_table:
+        match_type = 1
+        print(barcode,fragments,1)
     else:
         match_type = 2
     return (fragments,match_type)
@@ -104,13 +104,14 @@ def build_full_barcode_table(barcodes):
     '''
     print("Building barcode index...")
 
+
     # This is a list that containts all the possible barcodes having one mistmatch
     # to at least two barcodes in the whitelist (and therefore cannot be catagorized).
-    one_mismatch_to_two_barcodes = []
+    one_mismatch_to_two_barcodes = set()
 
     # This is a set that containts all the possible barcodes having one mistmatch
-    # to only one barcode in the whitelist (and therefore can be catagorized).
-    unique_one_mismatch_barcodes = []
+    # to one or more barcode in the whitelist (and therefore can be catagorized).
+    full_barcode_table  = set()
 
     bp = ['A','G','T','C']
     barcode_set = set(barcodes)
@@ -119,22 +120,23 @@ def build_full_barcode_table(barcodes):
     # all the duplicates.
     for barcode in barcodes:
         for i in range(len(barcode)):
+            bp.remove(barcode[i])
             for each in bp:
                 newbarcode = barcode[:i]+each+barcode[i+1:]
-                if newbarcode in barcode_set:
-                    # Meaning this is a perfect match instead of a 1-mismatch.
-                    continue
-                if newbarcode in unique_one_mismatch_barcodes:
-                    # Meaning it has one mismatch to 2+ barcodes in the whitelist
-                    one_mismatch_to_two_barcodes.append(newbarcode)
+                # if newbarcode in barcode_set:
+                #     # Meaning this is a perfect match instead of a 1-mismatch.
+                #     continue
+                if newbarcode in full_barcode_table:
+                #     # Meaning it has one mismatch to 2+ barcodes in the whitelist
+                     one_mismatch_to_two_barcodes.add(newbarcode)
                 else:
-                    unique_one_mismatch_barcodes.append(newbarcode)
-        print(len(one_mismatch_to_two_barcodes),len(unique_one_mismatch_barcodes))
+                    full_barcode_table.add(newbarcode)
+            bp.append(barcode[i])
+        print(len(full_barcode_table))
 
+    # unique_one_mismatch_barcodes.difference(one_mismatch_to_two_barcodes)
 
-    unique_one_mismatch_barcodes.difference(one_mismatch_to_two_barcodes)
-
-    return (unique_one_mismatch_barcodes,one_mismatch_to_two_barcodes)
+    return (full_barcode_table,one_mismatch_to_two_barcodes)
 
 def write_output(line_info):
     '''
