@@ -4,23 +4,6 @@ import getopt,sys
 import multiprocessing
 import time
 
-class Counter(object):
-    def __init__(self, initval=0):
-        self.val = multiprocessing.Value('i', initval)
-        self.lock = multiprocessing.Lock()
-
-    def increment(self):
-        with self.lock:
-            self.val.value += 1
-
-    def add_k(self,k):
-        with self.lock:
-            self.val.value += k
-
-    def value(self):
-        with self.lock:
-            return self.val.value
-
 def from_file_to_barcode_list(filename):
     '''
     Load the barcode file into the memory
@@ -69,8 +52,11 @@ def find_barcode_info(fragmentsfilename,barcodes):
     # Build barcode index
     (unique_one_mismatch_barcodes,one_mismatch_to_two_barcodes) = build_full_barcode_table(barcodes)
     barcode_set = set(barcodes) # A set structre makes the lookup faster.
-    if len(barcodes)!=len(barcode_set):
-        print("Warning: there are duplicates in the barcode whilelist!")
+
+    if len(barcodes) == len(barcode_set):
+        print("%d barcodes are provided. All of them are unique." % len(barcodes))
+    else:
+        print("%d barcodes are provided. %d of them are unique." % (len(barcodes),len(barcode_set)))
 
     f = open(fragmentsfilename,"r")
     print('Catagorizing barcodes...')
@@ -164,8 +150,8 @@ fullCmdArguments = sys.argv
 # - further arguments
 argumentList = fullCmdArguments[1:]
 
-unixOptions = "b:f:m:hc:0:"
-gnuOptions = ["barcodes=", "fragments=", "max=","help","core=","output="]
+unixOptions = "b:f:h0:"
+gnuOptions = ["barcodes=", "fragments=","help","output="]
 
 
 try:
@@ -175,38 +161,26 @@ except getopt.error as err:
     print (str(err))
     sys.exit(2)
 
-MISMATCH_LIMIT = 1 # Number of mismatch tolerated. Default 1.
-MAX_CORE = 1
 OUTPUT_FILENAME = "output.txt"
 
 if(len(arguments)==0):
     # barcode_list = from_file_to_barcode_list('given-barcodes-test.txt')
     barcodes = from_file_to_barcode_list('all-barcodes-test.txt')
     fragement_filename = 'sorted-fragments-test.txt'
+
 for currentArgument, currentValue in arguments:
     if currentArgument in ("-b", "--barcodes"):
         # print(currentValue)
         barcodes = from_file_to_barcode_list(currentValue)
-        if len(barcode_list) == len(set(barcode_list)):
-            print("%d barcodes are provided. All of them are unique." % len(barcode_list))
-        else:
-            print("%d barcodes are provided. %d of them are unique." % (len(barcode_list),len(set(barcode_list))))
     elif currentArgument in ("-f", "--fragments"):
         # print(currentValue)
         fragement_filename = currentValue
-    elif currentArgument in ("-m", "--max"):
-        # print(currentValue)
-        MISMATCH_LIMIT = int(currentValue)
-    elif currentArgument in ("-c", "--core"):
-        # print(currentValue)
         MAX_CORE = int(currentValue)
     elif currentArgument in ("-o", "--output"):
         OUTPUT_FILENAME = currentValue
     elif currentArgument in ("-h", "--help"):
         print("-b --barcodes  : barcodes.txt")
         print("-f --fragments : fragments.txt")
-        print("-m --max       : max-mismatch-tolerated (default 1)")
-        print("-c --core      : max-core-usage (default 1)")
         print("-o --output    : output-filename (default output.txt)")
         exit()
 
