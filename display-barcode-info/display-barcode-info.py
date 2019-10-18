@@ -106,14 +106,14 @@ def build_full_barcode_table(barcodes):
 
     # This is a list that containts all the possible barcodes having one mistmatch
     # to at least two barcodes in the whitelist (and therefore cannot be catagorized).
-    one_mismatch_to_two_barcodes = set()
+    one_mismatch_to_two_barcodes = []
 
     # This is a set that containts all the possible barcodes having one mistmatch
     # to only one barcode in the whitelist (and therefore can be catagorized).
-    unique_one_mismatch_barcodes = set()
+    unique_one_mismatch_barcodes = []
 
     bp = ['A','G','T','C']
-
+    barcode_set = set(barcodes)
     # In the following loop, we will store all the possible 1-mismatch barcodes
     # to unique_one_mismatch_barcodes at first, and do a set difference to remove
     # all the duplicates.
@@ -121,14 +121,16 @@ def build_full_barcode_table(barcodes):
         for i in range(len(barcode)):
             for each in bp:
                 newbarcode = barcode[:i]+each+barcode[i+1:]
-                if newbarcode in barcodes:
+                if newbarcode in barcode_set:
                     # Meaning this is a perfect match instead of a 1-mismatch.
                     continue
                 if newbarcode in unique_one_mismatch_barcodes:
                     # Meaning it has one mismatch to 2+ barcodes in the whitelist
-                    one_mismatch_to_two_barcodes.add(newbarcode)
+                    one_mismatch_to_two_barcodes.append(newbarcode)
                 else:
-                    unique_one_mismatch_barcodes.add(newbarcode)
+                    unique_one_mismatch_barcodes.append(newbarcode)
+        print(len(one_mismatch_to_two_barcodes),len(unique_one_mismatch_barcodes))
+
 
     unique_one_mismatch_barcodes.difference(one_mismatch_to_two_barcodes)
 
@@ -164,8 +166,9 @@ except getopt.error as err:
 OUTPUT_FILENAME = "output.txt"
 
 if(len(arguments)==0):
-    # barcode_list = from_file_to_barcode_list('given-barcodes-test.txt')
-    barcodes = from_file_to_barcode_list('all-barcodes-test.txt')
+    # barcodes = from_file_to_barcode_list('all-barcodes-test.txt')
+    barcodes = from_file_to_barcode_list('barcode-output.txt')
+
     fragement_filename = 'sorted-fragments-test.txt'
 
 for currentArgument, currentValue in arguments:
@@ -175,7 +178,6 @@ for currentArgument, currentValue in arguments:
     elif currentArgument in ("-f", "--fragments"):
         # print(currentValue)
         fragement_filename = currentValue
-        MAX_CORE = int(currentValue)
     elif currentArgument in ("-o", "--output"):
         OUTPUT_FILENAME = currentValue
     elif currentArgument in ("-h", "--help"):
