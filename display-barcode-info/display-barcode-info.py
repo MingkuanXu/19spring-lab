@@ -44,184 +44,109 @@ def extract_from_line(line):
     (fragments,barcode) = line.strip().split(" ")
     return (int(fragments),barcode)
 
-def catagorize_barcode(line):
-# def catagorize_barcode(line):
-
+def catagorize_barcode(line,barcode_set,unique_one_mismatch_barcodes,one_mismatch_to_two_barcodes):
     '''
     The following code is used to handle each barcode in the fragment file.
     It will insert an info entry into the barcode_info list.
     An info entry has a form of (barcode, # of fragments, 0/1 mismatch).
     '''
-
     (fragments, barcode) = extract_from_line(line.rstrip('\n'))
 
     if barcode in barcode_set:
-        # A perfect match
-        frag_0_mismatch.add_k(fragments)
-        bar_0_mismatch.increment()
-        # line_info.append((barcode,fragments,0))
+        match_type = 0
         print(barcode,fragments,0)
-        # all_involved_barcode.append(barcode)
-    elif barcode in full_barcode_table:
-        # (mismatch,matched_barcode) = find_most_similar_barcode(barcode)
-        frag_1_mismatch.add_k(fragments)
-        bar_1_mismatch.increment()
-            # line_info.append((matched_barcode,fragments,1))
+    elif barcode in unique_one_mismatch_barcodes:
+        match_type = 1
         print(barcode,fragments,1)
-            # all_involved_barcode.append(matched_barcode)
+    elif barcode in one_mismatch_to_two_barcodes:
+        match_type = 3
     else:
-        frag_2_mismatch.add_k(fragments)
-        bar_2_mismatch.increment()
+        match_type = 2
+    return (fragments,match_type)
 
-    return
+def find_barcode_info(fragmentsfilename,barcodes):
 
-def find_barcode_info(fragmentsfilename):
-
-    pool = multiprocessing.Pool(MAX_CORE)
-
-
-    # m = multiprocessing.Manager()
-    # line_info = m.list()
-    # all_involved_barcode = m.list()
+    # Build barcode index
+    (unique_one_mismatch_barcodes,one_mismatch_to_two_barcodes) = build_full_barcode_table(barcodes)
+    barcode_set = set(barcodes) # A set structre makes the lookup faster.
+    if len(barcodes)!=len(barcode_set):
+        print("Warning: there are duplicates in the barcode whilelist!")
 
     f = open(fragmentsfilename,"r")
     print('Catagorizing barcodes...')
 
+    frag_info = [0,0,0,0]
+    barcode_info = [0,0,0,0]
+
+    match_type = 0
+    # 0 - perfect match
+    # 1 - unique 1-mismatched
+    # 2 - 2 or more misamtch
+    # 3 - 1-mismatched to 2 or more barcodes.
+    num_of_fragments = 0 # Number of fragments in this line.
 
     total_fragements = 0
-
-
     while(True):
         line = f.readline().rstrip('\n')
         if not line:
             break
         total_fragements+=1
-        pool.apply_async(catagorize_barcode, (line,))
-        # pool.apply_async(catagorize_barcode, (line,))
-
-        # pool.apply_async(print_line,(line,))
-
-    # time.sleep(3)
-    # pool.wait()
-    pool.close()
-    pool.join()
-
+        (num_of_fragments,match_type) = catagorize_barcode(line,barcode_set,unique_one_mismatch_barcodes,one_mismatch_to_two_barcodes)
+        frag_info[match_type]+=num_of_fragments
+        barcode_info[match_type]+=1
     f.close()
 
     # Display results
 
     print('\n')
     print('Number of Lines in Total: %d' % (total_fragements))
-    print('Number of Barcodes Provided: %d' % len(barcode_list))
+    print('Number of Barcodes Provided: %d' % len(barcodes))
 
-    print("0   mismatch: %d fragments from %d barcodes" % (frag_0_mismatch.value(),bar_0_mismatch.value()))
-    print("1   mismatch: %d fragments from %d barcodes" % (frag_1_mismatch.value(),bar_1_mismatch.value()))
-    print("2+  mismatch: %d fragments from %d barcodes" % (frag_2_mismatch.value(),bar_2_mismatch.value()))
-
-    print("Match with 2: %d fragments from %d barcodes" % (frag_match_2.value(),bar_match_2.value()))
-
-    print('')
-
-    '''
-    print('Number of Involved Barcodes: %d' % len(all_involved_barcode))
-
-    all_involved_barcode = set(all_involved_barcode)
-    print('Number of Unique Involved Barcodes: %d' % len(all_involved_barcode))
+    print("0   mismatch: %d fragments from %d barcodes" % (frag_info[0],barcode_info[0]))
+    print("1   mismatch: %d fragments from %d barcodes" % (frag_info[1],barcode_info[1]))
+    print("2+  mismatch: %d fragments from %d barcodes" % (frag_info[2],barcode_info[2]))
+    print("Match with 2: %d fragments from %d barcodes" % (frag_info[3],barcode_info[3]))
 
     print('')
-
-    for each in line_info:
-
-    print('Writing into the output file')
-    write_output(line_info)
-    '''
-
     return
 
-def load_potential_barcodes_from_index(barcode):
+def build_full_barcode_table(barcodes):
     '''
-    Find all possible barcodes with at most 1-mismatch from the index.
+    This function is used to generate all the possible barcodes having one mistmatch
+    to a barcode in the white list. We will use this list as index to check if a barcode
+    can be catagorized.
     '''
-    number_of_A = barcode.count("A")
-    number_of_G = barcode.count("G")
-    compare_list = []
+    print("Building barcode index...")
 
-    possible_match_A_G = [(number_of_A, number_of_G),
-                          (number_of_A+1, number_of_G),
-                          (number_of_A-1, number_of_G),
-                          (number_of_A, number_of_G+1),
-                          (number_of_A, number_of_G-1),
-                          (number_of_A+1, number_of_G-1),
-                          (number_of_A-1, number_of_G+1)]
-    for each in possible_match_A_G:
-        try:
-            compare_list.extend(d_barcode_index[each[0]][each[1]])
-        except KeyError:
-            continue
-            # print("Key not found in index: %d, %d" % (each[0],each[1]))
-    return compare_list
+    # This is a list that containts all the possible barcodes having one mistmatch
+    # to at least two barcodes in the whitelist (and therefore cannot be catagorized).
+    one_mismatch_to_two_barcodes = set()
 
+    # This is a set that containts all the possible barcodes having one mistmatch
+    # to only one barcode in the whitelist (and therefore can be catagorized).
+    unique_one_mismatch_barcodes = set()
 
-    return d_barcode_index[number_of_A][number_of_G]
-def find_most_similar_barcode(barcode):
-    '''
-    Find the most similar barcode from the barcode list and return its number of mismatch.
-    '''
-    smallest_mismatch = MISMATCH_LIMIT+1
-    smallest_mismatch_barcode = ''
-
-    compare_list = load_potential_barcodes_from_index(barcode)
-    number_of_1_mismatch = 0
-    for each in compare_list:
-        current_mismatch = compare_barcodes(barcode,each)
-        if current_mismatch ==1:
-            number_of_1_mismatch +=1
-            smallest_mismatch_barcode = each
-            if number_of_1_mismatch ==2:
-                # print("Identify barcode w/ two 1-mismatch candidates!")
-                return (0,smallest_mismatch_barcode)
-            # return 1 # Already the smallest mismatch
-        if current_mismatch<smallest_mismatch:
-            smallest_mismatch =  current_mismatch
-    # if smallest_mismatch == MISMATCH_LIMIT+1:
-        # print("Mismatch Found: %s" % barcode)
-    return (smallest_mismatch, smallest_mismatch_barcode)
-
-def compare_barcodes(barcode1, barcode2):
-    '''
-    Compare two barcodes one by one and return their number of mismatched nucleotides.
-    '''
-    if not(len(barcode1)==len(barcode2)):
-        print("Error: two barcodes differ in length!")
-        print(barcode1)
-        print(barcode2)
-        exit()
-    mismatch = 0
-    for i in range(len(barcode1)):
-        if(barcode1[i]==barcode2[i]):
-            continue
-        mismatch+=1
-        if mismatch==MISMATCH_LIMIT+1:
-            return mismatch
-    if mismatch == 0:
-        print("Error: two barcodes are the same!")
-        print(barcode1)
-        print(barcode2)
-        exit()
-    if mismatch>(MISMATCH_LIMIT+1):
-        print("Error: barcode out of mismatch limit!")
-        exit()
-    return mismatch
-
-
-def build_full_barcode_table():
-    print("Hi")
     bp = ['A','G','T','C']
-    for barcode in barcode_list:
+
+    # In the following loop, we will store all the possible 1-mismatch barcodes
+    # to unique_one_mismatch_barcodes at first, and do a set difference to remove
+    # all the duplicates.
+    for barcode in barcodes:
         for i in range(len(barcode)):
             for each in bp:
-                full_barcode_table.append(barcode[:i]+each+barcode[i+1:])
+                newbarcode = barcode[:i]+each+barcode[i+1:]
+                if newbarcode in barcodes:
+                    # Meaning this is a perfect match instead of a 1-mismatch.
+                    continue
+                if newbarcode in unique_one_mismatch_barcodes:
+                    # Meaning it has one mismatch to 2+ barcodes in the whitelist
+                    one_mismatch_to_two_barcodes.add(newbarcode)
+                else:
+                    unique_one_mismatch_barcodes.add(newbarcode)
 
+    unique_one_mismatch_barcodes.difference(one_mismatch_to_two_barcodes)
+
+    return (unique_one_mismatch_barcodes,one_mismatch_to_two_barcodes)
 
 def write_output(line_info):
     '''
@@ -232,27 +157,6 @@ def write_output(line_info):
     f_out = open(OUTPUT_FILENAME,"w")
 
     f_out.close()
-
-
-def build_barcode_index():
-    '''
-    Build a simple barcode index based on the number of As & Gs.
-
-    dic = { 0: {0:["TTTTT","CCCCC"], ...}
-            1: {0:["ATTTT","ACCCC"], ...}
-          }
-
-    '''
-    print('Building barcode index...')
-    for each in barcode_list:
-        number_of_A = each.count('A')
-        number_of_G = each.count('G')
-        if number_of_A not in d_barcode_index:
-            d_barcode_index[number_of_A] = {}
-        if number_of_G not in d_barcode_index[number_of_A]:
-            d_barcode_index[number_of_A][number_of_G] = []
-        d_barcode_index[number_of_A][number_of_G].append(each)
-
 
 # read commandline arguments, first
 fullCmdArguments = sys.argv
@@ -275,23 +179,18 @@ MISMATCH_LIMIT = 1 # Number of mismatch tolerated. Default 1.
 MAX_CORE = 1
 OUTPUT_FILENAME = "output.txt"
 
-barcode_list = []
-barcode_set = set([])
-
 if(len(arguments)==0):
     # barcode_list = from_file_to_barcode_list('given-barcodes-test.txt')
-    barcode_list = from_file_to_barcode_list('barcode-output.txt')
-    barcode_set = set(barcode_list)
+    barcodes = from_file_to_barcode_list('all-barcodes-test.txt')
     fragement_filename = 'sorted-fragments-test.txt'
 for currentArgument, currentValue in arguments:
     if currentArgument in ("-b", "--barcodes"):
         # print(currentValue)
-        barcode_list = from_file_to_barcode_list(currentValue)
+        barcodes = from_file_to_barcode_list(currentValue)
         if len(barcode_list) == len(set(barcode_list)):
             print("%d barcodes are provided. All of them are unique." % len(barcode_list))
         else:
             print("%d barcodes are provided. %d of them are unique." % (len(barcode_list),len(set(barcode_list))))
-        barcode_set = set(barcode_list)
     elif currentArgument in ("-f", "--fragments"):
         # print(currentValue)
         fragement_filename = currentValue
@@ -312,20 +211,4 @@ for currentArgument, currentValue in arguments:
         exit()
 
 
-frag_0_mismatch = Counter(0)
-frag_1_mismatch = Counter(0)
-frag_2_mismatch = Counter(0)
-frag_match_2 = Counter(0)
-
-bar_0_mismatch = Counter(0)
-bar_1_mismatch = Counter(0)
-bar_2_mismatch = Counter(0)
-bar_match_2 = Counter(0)
-
-
-# d_barcode_index = {}
-# build_barcode_index()
-full_barcode_table = []
-build_full_barcode_table()
-
-find_barcode_info(fragement_filename)
+find_barcode_info(fragement_filename,barcodes)
