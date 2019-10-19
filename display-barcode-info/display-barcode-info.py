@@ -28,7 +28,7 @@ def extract_from_line(line):
     return (int(fragments),barcode)
 
 
-def find_one_mismatch(barcode_set,barcode):
+def find_one_mismatch(barcode_set,barcode,f_out_barcode_map):
     bp = ['A','G','T','C']
     b_found = False
 
@@ -41,10 +41,14 @@ def find_one_mismatch(barcode_set,barcode):
                 if b_found:
                     return 3
                 b_found = True
-    return (2-b_found)
+                corresponding_whitelist_barcode = newbarcode
+    if b_found:
+        f_out_barcode_map.write(" ".join([barcode,corresponding_whitelist_barcode,"\n"]))
+        return 1
+    return 2
 
 
-def catagorize_barcode(line,barcode_set):
+def catagorize_barcode(line,barcode_set,f_out_barcode_map):
     '''
     The following code is used to handle each barcode in the fragment file.
     It will insert an info entry into the barcode_info list.
@@ -55,7 +59,7 @@ def catagorize_barcode(line,barcode_set):
     if barcode in barcode_set:
         match_type = 0
     else:
-        match_type = find_one_mismatch(barcode_set,barcode)
+        match_type = find_one_mismatch(barcode_set,barcode,f_out_barcode_map)
     return (barcode, fragments, match_type)
 
 def find_barcode_info(fragmentsfilename,barcodes):
@@ -69,6 +73,8 @@ def find_barcode_info(fragmentsfilename,barcodes):
         print("%d barcodes are provided. %d of them are unique." % (len(barcodes),len(barcode_set)))
 
     f = open(fragmentsfilename,"r")
+    f_out_info = open(OUTPUT_FILENAME,"w+")
+    f_out_barcode_map = open('barcode_map.txt',"w+")
     # f = open(outputfile,"w")
     print('Catagorizing barcodes...')
 
@@ -87,10 +93,13 @@ def find_barcode_info(fragmentsfilename,barcodes):
         if not line:
             break
         total_fragements+=1
-        (barcode, num_of_fragments,match_type) = catagorize_barcode(line,barcode_set)
+        (barcode, num_of_fragments,match_type) = catagorize_barcode(line,barcode_set,f_out_barcode_map)
+        f_out_info.write(" ".join([barcode,str(num_of_fragments),str(match_type),"\n"]))
         frag_info[match_type]+=num_of_fragments
         barcode_info[match_type]+=1
     f.close()
+    f_out_info.close()
+    f_out_barcode_map.close()
 
     # Display results
     print('\n')
@@ -111,7 +120,7 @@ def write_output(barcode,fragments):
     Var fragments refers to the number of fragments matched with the given barcode.
     Var type: 0 refers to perfect match & 1 refers to 1 mismatch.
     '''
-    f_out = open(OUTPUT_FILENAME,"w")
+    f_out = open(OUTPUT_FILENAME,"w+")
 
     f_out.close()
 
@@ -132,7 +141,7 @@ except getopt.error as err:
     print (str(err))
     sys.exit(2)
 
-OUTPUT_FILENAME = "output.txt"
+OUTPUT_FILENAME = "barcode_info.txt"
 
 if(len(arguments)==0):
     # barcodes = from_file_to_barcode_list('all-barcodes-test.txt')
