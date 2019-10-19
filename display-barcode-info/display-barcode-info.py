@@ -30,15 +30,18 @@ def extract_from_line(line):
 
 def find_one_mismatch(barcode_set,barcode):
     bp = ['A','G','T','C']
+    b_found = False
 
     for i in range(len(barcode)):
-        bp.remove(barcode[i].upper())
         for each in bp:
+            if each == barcode[i].upper():
+                continue
             newbarcode = barcode[:i]+each+barcode[i+1:]
             if newbarcode in barcode_set:
-                return 1
-        bp.append(barcode[i].upper())
-    return 2
+                if b_found:
+                    return 3
+                b_found = True
+    return (2-b_found)
 
 
 def catagorize_barcode(line,barcode_set):
@@ -132,8 +135,8 @@ except getopt.error as err:
 OUTPUT_FILENAME = "output.txt"
 
 if(len(arguments)==0):
-    barcodes = from_file_to_barcode_list('all-barcodes-test.txt')
-    # barcodes = from_file_to_barcode_list('barcode-output.txt')
+    # barcodes = from_file_to_barcode_list('all-barcodes-test.txt')
+    barcodes = from_file_to_barcode_list('barcode-output.txt')
 
     fragement_filename = 'sorted-fragments-test.txt'
 
