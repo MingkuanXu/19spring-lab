@@ -102,27 +102,14 @@ def find_barcode_info(fragmentsfilename,barcodes):
     f_out_barcode_map.close()
 
     # Display results
-    print('\n')
-    print('Number of Lines in Total: %d' % (total_fragements))
-    print('Number of Barcodes Provided: %d' % len(barcodes))
+    print('Number of Barcodes Processed in Total: %d' % (total_fragements))
+    print('Number of Barcodes Provided in Whitelist: %d' % len(barcodes))
 
     print("0   mismatch: %d fragments from %d barcodes" % (frag_info[0],barcode_info[0]))
     print("1   mismatch: %d fragments from %d barcodes" % (frag_info[1],barcode_info[1]))
     print("2+  mismatch: %d fragments from %d barcodes" % (frag_info[2],barcode_info[2]))
     print("Match with 2: %d fragments from %d barcodes" % (frag_info[3],barcode_info[3]))
-
-    print('')
     return
-
-def write_output(barcode,fragments):
-    '''
-    This function writes line info into a file.
-    Var fragments refers to the number of fragments matched with the given barcode.
-    Var type: 0 refers to perfect match & 1 refers to 1 mismatch.
-    '''
-    f_out = open(OUTPUT_FILENAME,"w+")
-
-    f_out.close()
 
 # read commandline arguments, first
 fullCmdArguments = sys.argv
