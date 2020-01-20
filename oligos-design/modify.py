@@ -68,14 +68,11 @@ def categorize_oligo_snp(oligo_filename,output_filename,snp_dic,exceptions):
             is_alt = check_if_alt(enhancer,snp_dic[rsid][1])
 
             if is_ref:
-                if not is_alt:
-                    for each_alt in snp_dic[rsid][1].split(','):
-                        output_enhancer = enhancer[:POSITION_OF_SNP-1]+each_alt+enhancer[POSITION_OF_SNP-1+len(snp_dic[rsid][0]):]
-                        if(output_enhancer==enhancer):
-                            print("Error! Please report.")
-                        f_output.write(line.split(',')[0]+','+output_enhancer)
-                else: # Both
-                    exceptions[3].append(line)
+                for each_alt in snp_dic[rsid][1].split(','):
+                    output_enhancer = enhancer[:POSITION_OF_SNP-1]+each_alt+enhancer[POSITION_OF_SNP-1+len(snp_dic[rsid][0]):]
+                    if(output_enhancer==enhancer):
+                        print("Error! Please report.")
+                    f_output.write(line.split(',')[0]+','+output_enhancer)
             else:
                 if not is_alt: # Neither
                     exceptions[2].append(line)
@@ -94,7 +91,6 @@ def report_result(exceptions,oligo_snps):
     print("Reference only:   %2d" % (len(oligo_snps)-sum([len(exceptions[i]) for i in range(1,5)])))
     print("Alternative only: %2d" % len(exceptions[1]))
     print("Neither Ref/Alt:  %2d" % len(exceptions[2]))
-    print("Both Ref & Alt:   %2d" % len(exceptions[3]))
     print("Cannot find rsid: %2d" % len(exceptions[4]))
 
 def log_exceptions(exceptions,exception_filename):
@@ -105,10 +101,6 @@ def log_exceptions(exceptions,exception_filename):
 
         f_exp.write('Alternative only:\n')
         for each in exceptions[1]:
-            f_exp.write(each)
-
-        f_exp.write('Both Ref & Alt:\n')
-        for each in exceptions[3]:
             f_exp.write(each)
 
         f_exp.write('Neither Ref/Alt:\n')
@@ -128,10 +120,15 @@ def main():
     '''
     Debug use only
 
+
     snp_filename = 'sample_snps.txt'
     oligo_filename = 'sample_oligo.csv'
+    output_filename = 'output.csv'
+    exception_filename = 'excpetions.txt'
     '''
-    # Filename for enhancer, snp, and output files
+
+
+    # # Filename for enhancer, snp, and output files
     snp_filename = options.s
     oligo_filename = options.l
     if not options.o:
